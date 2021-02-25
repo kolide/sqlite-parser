@@ -393,6 +393,24 @@ tcl_suffix
       'suffix': sfx
     };
   }
+/** START: over clauses */
+
+/** {@link https://www.sqlite.org/syntax/over-clause.html} */
+/** still need to support window functions */
+over_clause
+  =  OVER o sym_popen o p:( partition_clause ) o sym_pclose
+  {
+    return {'type': 'other', 'description': 'over clause', 'partition': p};
+  }
+
+partition_clause
+  = PARTITION o BY o e:( expression )
+  {
+    return {'type': 'expression', 'description': 'partition','expression': e };
+  }
+
+
+/** END: over clauses */
 
 /* START: Unary and Binary Expression
  * Syntax: v2.0
@@ -727,12 +745,12 @@ expression_list_rest
  *  Allow functions to have datatype names: date(arg), time(now), etc...
  */
 function_call "Function Call"
-  = n:( id_function ) o sym_popen a:( function_call_args )? o sym_pclose
+  = n:( id_function ) o sym_popen a:( function_call_args )? o sym_pclose o over:( over_clause )?
   {
     return Object.assign({
       'type': 'function',
-      'name': n
-    }, a);
+      'name': n,
+    }, a, over);
   }
 
 function_call_args "Function Call Arguments"
@@ -3141,6 +3159,10 @@ ORDER
   = "ORDER"i !name_char
 OUTER
   = "OUTER"i !name_char
+OVER
+  = "OVER"i !name_char
+PARTITION
+  = "PARTITION"i !name_char
 PLAN
   = "PLAN"i !name_char
 PRAGMA
@@ -3242,7 +3264,7 @@ reserved_word_list
     INITIALLY / INNER / INSERT / INSTEAD / INTERSECT / INTO / IS /
     ISNULL / JOIN / KEY / LEFT / LIKE / LIMIT / MATCH / NATURAL /
     NO / NOT / NOTNULL / NULL / OF / OFFSET / ON / OR / ORDER /
-    OUTER / PLAN / PRAGMA / PRIMARY / QUERY / RAISE / RECURSIVE /
+    OUTER / OVER / PARTITION / PLAN / PRAGMA / PRIMARY / QUERY / RAISE / RECURSIVE /
     REFERENCES / REGEXP / REINDEX / RELEASE / RENAME / REPLACE /
     RESTRICT / RIGHT / ROLLBACK / ROW / SAVEPOINT / SELECT /
     SET / TABLE / TEMPORARY / THEN / TO / TRANSACTION /
