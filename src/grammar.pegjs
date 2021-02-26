@@ -394,6 +394,43 @@ tcl_suffix
     };
   }
 
+/** START: over clauses / window functions */
+
+/** {@link https://www.sqlite.org/syntax/over-clause.html} */
+/**
+ * if window_name is present, the window def may follow the over clause,
+ * e.g. ... WINDOW win1 AS (order by b). this window definition style isn't
+ * supported
+ */
+over_clause "Window Function's Over Clause"
+  = OVER o t:( window_name / window_def )
+  {
+    return { 'variant': 'window', 'over': t };
+  }
+
+/** this omits support for a 'frame-spec' that can be added right before the closing paren */
+window_def
+ = sym_popen o b:( base_window_name )? o part:( partition_clause )? o order:( stmt_core_order )? o sym_pclose
+ {
+   return Object.assign({'type': 'window definition', 'description': 'window definition'}, b, part, order)
+ }
+
+base_window_name
+ = n:( window_name )
+ { return {'base_window_name': n } }
+
+window_name
+ = n:( name )
+ { return {type: 'identifier', 'variant': 'window-name', 'name': n} }
+
+partition_clause "Partition By clause"
+  = PARTITION o BY o e:( expression )
+  {
+    return { 'partition':  { 'expression': e } };
+  }
+
+/** END: over clauses / window functions */
+
 /* START: Unary and Binary Expression
  * Syntax: v2.0
  * {@link https://www.sqlite.org/lang_expr.html}
@@ -727,12 +764,13 @@ expression_list_rest
  *  Allow functions to have datatype names: date(arg), time(now), etc...
  */
 function_call "Function Call"
-  = n:( id_function ) o sym_popen a:( function_call_args )? o sym_pclose
+  = n:( id_function ) o sym_popen a:( function_call_args )? o sym_pclose o over:( over_clause )?
   {
     return Object.assign({
       'type': 'function',
-      'name': n
-    }, a);
+      'name': n,
+    }, a, over);
+
   }
 
 function_call_args "Function Call Arguments"
@@ -3141,6 +3179,10 @@ ORDER
   = "ORDER"i !name_char
 OUTER
   = "OUTER"i !name_char
+OVER
+  = "OVER"i !name_char
+PARTITION
+  = "PARTITION"i !name_char
 PLAN
   = "PLAN"i !name_char
 PRAGMA
@@ -3242,7 +3284,7 @@ reserved_word_list
     INITIALLY / INNER / INSERT / INSTEAD / INTERSECT / INTO / IS /
     ISNULL / JOIN / KEY / LEFT / LIKE / LIMIT / MATCH / NATURAL /
     NO / NOT / NOTNULL / NULL / OF / OFFSET / ON / OR / ORDER /
-    OUTER / PLAN / PRAGMA / PRIMARY / QUERY / RAISE / RECURSIVE /
+    OUTER / OVER / PARTITION / PLAN / PRAGMA / PRIMARY / QUERY / RAISE / RECURSIVE /
     REFERENCES / REGEXP / REINDEX / RELEASE / RENAME / REPLACE /
     RESTRICT / RIGHT / ROLLBACK / ROW / SAVEPOINT / SELECT /
     SET / TABLE / TEMPORARY / THEN / TO / TRANSACTION /
