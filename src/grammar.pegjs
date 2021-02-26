@@ -394,23 +394,19 @@ tcl_suffix
     };
   }
 
-/** START: over clauses */
+/** START: over clauses / window functions */
 
 /** {@link https://www.sqlite.org/syntax/over-clause.html} */
-/** still need to support window functions */
-over_clause "Window Function's Over Clause"
-  = OVER o t:( over_target )
-  {
-    return { 'variant': 'window', 'over_clause': t };
-  }
-
 /**
- * omits support for window-name instead of window_def, where the window-name
- * is a window_def defined elsewhere
+ * if window_name is present, the window def may follow the over clause,
+ * e.g. ... WINDOW win1 AS (order by b). this window definition style isn't
+ * supported
  */
-over_target
- = t:( window_def )
- { return { 'type': 'other', 'variant': 'window-definition', 'window': t } }
+over_clause "Window Function's Over Clause"
+  = OVER o t:( window_name / window_def )
+  {
+    return { 'variant': 'window', 'over': t };
+  }
 
 /** this omits support for a 'frame-spec' that can be added right before the closing paren */
 window_def
@@ -433,8 +429,7 @@ partition_clause "Partition By clause"
     return { 'partition':  { 'expression': e } };
   }
 
-
-/** END: over clauses */
+/** END: over clauses / window functions */
 
 /* START: Unary and Binary Expression
  * Syntax: v2.0
