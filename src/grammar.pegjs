@@ -393,20 +393,44 @@ tcl_suffix
       'suffix': sfx
     };
   }
+
 /** START: over clauses */
 
 /** {@link https://www.sqlite.org/syntax/over-clause.html} */
 /** still need to support window functions */
-over_clause
-  =  OVER o sym_popen o p:( partition_clause ) o sym_pclose
+over_clause "Window Function's Over Clause"
+  = OVER o t:( over_target )
   {
-    return {'type': 'other', 'description': 'over clause', 'partition': p};
+    return { 'variant': 'window', 'over_clause': t };
   }
 
-partition_clause
+/**
+ * omits support for window-name instead of window_def, where the window-name
+ * is a window_def defined elsewhere
+ */
+over_target
+ = t:( window_def )
+ { return { 'type': 'other', 'variant': 'window-definition', 'window': t } }
+
+/** this omits support for a 'frame-spec' that can be added right before the closing paren */
+window_def
+ = sym_popen o b:( base_window_name )? o part:( partition_clause )? o order:( stmt_core_order )? o sym_pclose
+ {
+   return Object.assign({'type': 'window definition', 'description': 'window definition'}, b, part, order)
+ }
+
+base_window_name
+ = n:( window_name )
+ { return {'base_window_name': n } }
+
+window_name
+ = n:( name )
+ { return {type: 'identifier', 'variant': 'window-name', 'name': n} }
+
+partition_clause "Partition By clause"
   = PARTITION o BY o e:( expression )
   {
-    return {'type': 'expression', 'description': 'partition','expression': e };
+    return { 'partition':  { 'expression': e } };
   }
 
 
@@ -751,6 +775,7 @@ function_call "Function Call"
       'type': 'function',
       'name': n,
     }, a, over);
+
   }
 
 function_call_args "Function Call Arguments"
