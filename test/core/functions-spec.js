@@ -10,4 +10,16 @@ describe('functions', function() {
     tree.equals(this, done);
   });
 
+  it('window function 1', function(done) {
+    tree.ok(this, done);
+  });
+
+  it('window function 2', function(done) {
+    tree.ok(this, done);
+  });
+
+  it('window function 3', function(done) {
+    tree.ok(this, done);
+  });
+
 });
